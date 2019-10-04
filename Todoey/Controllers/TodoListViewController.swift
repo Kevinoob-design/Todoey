@@ -53,9 +53,18 @@ class ToDoListViewController: UITableViewController {
         
         tableView.deselectRow(at: indexPath, animated: true)
         
-//        todoItems[indexPath.row].done = !todoItems[indexPath.row].done
-//
-//        SaveItems()
+        if let item = todoItems?[indexPath.row]{
+            do{
+                try realm.write {
+                    item.done = !item.done
+                }
+            }
+            catch{
+                print("Error saving done status, \(error)")
+            }
+        }
+        
+        tableView.reloadData()
     }
     
     //MARK: Add New Items
@@ -73,6 +82,7 @@ class ToDoListViewController: UITableViewController {
                     try self.realm.write {
                         let newItem = Item()
                         newItem.tittle = textField.text!
+                        newItem.dateCreated = Date.init()
                         currentCategory.items.append(newItem)
                     }
                 }
@@ -118,24 +128,20 @@ class ToDoListViewController: UITableViewController {
 }
 
 //MARK: Extension for UISearchBarDelegate
-//extension ToDoListViewController: UISearchBarDelegate{
-//
-//    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-//        let request: NSFetchRequest<Item> = Item.fetchRequest()
-//
-//        let predicate = NSPredicate(format: "tittle CONTAINS[cd] %@", searchBar.text!)
-//        request.sortDescriptors = [NSSortDescriptor(key: "tittle", ascending: true)]
-//
-//        LoadItems(with: request, predicate: predicate)
-//    }
-//
-//    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-//        if searchBar.text?.count == 0{
-//            LoadItems()
-//
-//            DispatchQueue.main.async {
-//                searchBar.resignFirstResponder()
-//            }
-//        }
-//    }
-//}
+extension ToDoListViewController: UISearchBarDelegate{
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0{
+            LoadItems()
+
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
+            }
+        }
+        else{
+            todoItems = todoItems?.filter("tittle CONTAINS[cd] %@", searchBar.text!).sorted(byKeyPath: "dateCreated", ascending: false)
+            
+            tableView.reloadData()
+        }
+    }
+}

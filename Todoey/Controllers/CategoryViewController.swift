@@ -8,8 +8,9 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
-class CategoryViewController: UITableViewController {
+class CategoryViewController: SwipeTableViewController {
     
     let realm = try! Realm()
     var categoryArray: Results<Category>?
@@ -28,9 +29,11 @@ class CategoryViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
         cell.textLabel?.text = categoryArray?[indexPath.row].name ?? "No categories added yet."
+        cell.backgroundColor = UIColor(hexString: categoryArray?[indexPath.row].colour ?? "1D9BF6")
+        cell.textLabel?.textColor = ContrastColorOf(backgroundColor: cell.backgroundColor ?? UIColor.white, returnFlat: true)
         
         return cell
     }
@@ -38,7 +41,7 @@ class CategoryViewController: UITableViewController {
     
     //MARK: - Data Manipulation Methods
     
-    func Save(category: Category) -> Void {
+    func Save(category: Category){
                 
         do{
             try realm.write {
@@ -58,6 +61,21 @@ class CategoryViewController: UITableViewController {
 
         tableView.reloadData()
     }
+        
+    //MARK: Delete method for swipe
+    override func updateModel(at indexPath: IndexPath) {
+
+        if let itemForDeletion = self.categoryArray?[indexPath.row]{
+            do{
+                try self.realm.write {
+                    self.realm.delete(itemForDeletion)
+                }
+            }
+            catch{
+                print("Error saving context, \(error)")
+            }
+        }
+    }
     
     
     //MARK: - Add New Categories
@@ -72,6 +90,7 @@ class CategoryViewController: UITableViewController {
             
             let newCategory = Category()
             newCategory.name = textField.text!
+            newCategory.colour = RandomFlatColor().hexValue()
             
             self.Save(category: newCategory)
         }
@@ -103,6 +122,40 @@ class CategoryViewController: UITableViewController {
         }
     }
 }
+
+//MARK: Extension for Swipe Table View Cell Methods
+//extension CategoryViewController: SwipeTableViewCellDelegate{
+//
+//    func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath, for orientation: SwipeActionsOrientation) -> [SwipeAction]? {
+//
+//        guard orientation == .right else { return nil }
+//
+//        let deleteAction = SwipeAction(style: .destructive, title: "Delete") { action, indexPath in
+//
+//            if let categoryForDeletion = self.categoryArray?[indexPath.row]{
+//                do{
+//                    try self.realm.write {
+//                        self.realm.delete(categoryForDeletion)
+//                    }
+//                }
+//                catch{
+//                    print("Error saving context, \(error)")
+//                }
+//            }
+//        }
+//
+//        deleteAction.image = UIImage(systemName: "trash.fill")
+//
+//        return [deleteAction]
+//    }
+//
+//    func tableView(_ tableView: UITableView, editActionsOptionsForRowAt indexPath: IndexPath, for orientation: SwipeActionsOrientation) -> SwipeOptions {
+//
+//        var options = SwipeOptions()
+//        options.expansionStyle = .destructive
+//        return options
+//    }
+//}
 
 //MARK: Extension for UISearchBarDelegate
 extension CategoryViewController: UISearchBarDelegate{
